@@ -1,6 +1,6 @@
 # Commute Glance
 
-Status: project planning; app and backend not implemented yet.
+Status: initial implementation added. See README.md for setup, current behaviour and limitations, and docs/VALIDATION.md for validation. Physical Pixel testing and live rail credentials remain outstanding.
 
 ## Goal
 A minimal native Android departure board, home-screen widget and optional silent lock-screen notification. Target device: Google Pixel 7, kept up to date. Prioritise glanceable information without opening an app; always communicate freshness honestly.
@@ -8,7 +8,7 @@ A minimal native Android departure board, home-screen widget and optional silent
 ## Agreed requirements
 - Kotlin Android app and widget; Go backend suitable for Raspberry Pi.
 - Selectable bus stop and route filters.
-- Default stop: Haling Park Gardens, stop GW, northbound on Haling Park Road. Routes 166 towards West Croydon and 405 towards Croydon. Resolve and verify the TfL stop ID before live integration.
+- Default stop: Haling Park Gardens, stop GW, northbound on Haling Park Road. Routes 166 towards West Croydon and 405 towards Croydon. Verified via live TfL lookup: NaPTAN 490007669N, stop GW.
 - Walking time: 3 minutes, editable. Show earlier buses but highlight realistically catchable ones.
 - Monday/Thursday mornings: bus departures plus fast East Croydon to London Bridge trains. Morning trains were explicitly requested for Monday; including Thursday is a proposed default.
 - Monday/Thursday afternoons: fast London Bridge to East Croydon trains, including platforms, expected times, delays and cancellations.
@@ -46,3 +46,4 @@ The backend should run locally for development and on the Pi later. Document pho
 
 ## Next-session instruction
 Read this document first, inspect the current repository, and continue from actual implemented state. Preserve the Go/Kotlin choices and agreed requirements. Clearly distinguish tested behaviour, sample data and unfinished functionality.
+

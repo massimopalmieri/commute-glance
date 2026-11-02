@@ -1,0 +1,12 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file: .env
+    environment:
+      LISTEN_ADDR: 0.0.0.0:8080
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
