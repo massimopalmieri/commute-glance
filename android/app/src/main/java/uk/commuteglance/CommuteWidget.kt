@@ -37,8 +37,9 @@ class CommuteWidget:AppWidgetProvider() {
             val kinds=when(mode){"morning"->listOf("bus","out");"evening"->listOf("home");else->emptyList()}
             val title=when(mode){"morning"->"To work · ${s.stopName}";"evening"->"London Bridge → East Croydon";else->"Commute Glance · outside commute hours"}
             val rows=when(mode){"morning"->"BUS\n${repo.summary("bus",2,false)}\n\nECR → LBG\n${repo.summary("out",2,false)}";"evening"->repo.summary("home",3,false);else->"Tap to view departures anytime\nScheduled windows in Settings"}
+            val widgetRows=when(mode){"morning"->"${repo.summary("bus",2,false,true)}\nECR → LBG\n${repo.summary("out",1,false,true)}";"evening"->repo.summary("home",3,false,true);else->rows}
             val views=RemoteViews(c.packageName,R.layout.widget)
-            views.setTextViewText(R.id.title,title);views.setTextViewText(R.id.rows,rows)
+            views.setTextViewText(R.id.title,title);views.setTextViewText(R.id.rows,widgetRows)
             views.setOnClickPendingIntent(R.id.rows,open(c));views.setOnClickPendingIntent(R.id.title,open(c))
             views.setOnClickPendingIntent(R.id.refresh,PendingIntent.getBroadcast(c,1,Intent(c,CommuteWidget::class.java).setAction("uk.commuteglance.REFRESH"),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
             val nowInstant = Instant.now()

@@ -75,8 +75,8 @@ Android can delay periodic work. Commute windows are evaluated when work execute
 
 A host Chronometer can tick without fetching data, but cannot execute arbitrary application logic when it reaches zero. The widget therefore explicitly labels a negative countdown as an elapsed prediction, shows fixed expected clock times and displays a continuously advancing age counter. Rows and expired-data messages are recalculated at the next app/widget update. Data older than 90 seconds is stale; over 10 minutes it is suppressed when rendered. The age counter remains the authoritative indicator between updates. Lock-screen content is a dated snapshot and refreshes on the same best-effort schedule.
 
-Before relying on it, test on the Pixel: font scaling/widget resizing, notification permission and lock-screen settings, a real morning/afternoon window, screen-off/Doze, reboot, an upstream outage, clock/timezone changes and more than ten minutes without connectivity. The app uses Europe/London for scheduling and supports BST. No physical Pixel or emulator UI test has been completed in the cloud environment.
+Before relying on it, test on the Pixel: font scaling/widget resizing, notification permission and lock-screen settings, a real morning/afternoon window, screen-off/Doze, reboot, an upstream outage, clock/timezone changes and more than ten minutes without connectivity. The app uses Europe/London for scheduling and supports BST. Physical Pixel 7 checks were completed on 3 November 2026. See docs/VALIDATION.md for the tested cases and remaining limits.
 
 CI tests Go and builds/lints/tests Android, uploading a debug APK as `commute-glance-debug`. Debug signing keys differ between machines/CI; switching installation sources may require uninstalling the previous build, which clears app settings. Use the same laptop for ongoing development.
 
-See [project requirements](docs/PROJECT.md) and [validation notes](docs/VALIDATION.md).
+See [Pi deployment](docs/PI.md), [Mac development fallback](docs/MAC_PIXEL.md), [project requirements](docs/PROJECT.md) and [validation notes](docs/VALIDATION.md).

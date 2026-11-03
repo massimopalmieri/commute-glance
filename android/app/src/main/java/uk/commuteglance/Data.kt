@@ -70,14 +70,17 @@ class Repository(val context: Context) {
         val rows = (0 until a.length()).map { i -> val d = a.getJSONObject(i); Departure(d.getString("route"), d.getString("destination"), instant(d,"expectedAt"), instant(d,"scheduledAt"), d.optString("platform"), d.optString("status"), d.optInt("durationMinutes")) }
         return Board(o.getString("source"), Instant.parse(o.getString("fetchedAt")), instant(o,"sourceAt"), o.optBoolean("stale"), o.optString("warning"), rows)
     }
-    fun summary(kind: String, limit: Int, countdown: Boolean): String {
-        val b = board(kind) ?: return error(kind).ifBlank { "No data yet · refresh" }
+    fun summary(kind: String, limit: Int, countdown: Boolean, compact: Boolean = false): String {
+        val b = board(kind) ?: return if (compact) {
+            if (kind != "bus" && error(kind).startsWith("Rail not configured")) "Rail not configured"
+            else if (error(kind).isNotBlank()) "Unavailable · tap to retry" else "No data yet · refresh"
+        } else error(kind).ifBlank { "No data yet · refresh" }
         val now = Instant.now(); val age = Duration.between(b.fetched, now).seconds.coerceAtLeast(0)
         if (age > 600) return "Data expired · last checked ${CommuteRules.time(b.fetched)}\nRefresh required" + if (error(kind).isNotBlank()) "\n${error(kind)}" else ""
         val rows = b.departures.filter { d -> val at=d.expected?:d.scheduled; at==null || at>now.minusSeconds(60) }.take(limit)
         val stale = b.stale || age > 90 || error(kind).isNotBlank() || b.sourceAt?.let { Duration.between(it,now).seconds > 120 } == true
-        return (if (rows.isEmpty()) "No upcoming departures in this feed" else rows.joinToString("\n\n") { it.line(now,settings.walk,countdown) }) +
+        return (if (rows.isEmpty()) "No upcoming departures in this feed" else rows.joinToString(if (compact) "\n" else "\n\n") { if (compact) it.widgetLine(now, settings.walk) else it.line(now,settings.walk,countdown) }) +
             "\n${if(stale) "STALE · " else ""}${b.source} checked ${CommuteRules.time(b.fetched)}" +
-            if (error(kind).isNotBlank() || b.warning.isNotBlank()) "\nRefresh unavailable · tap to retry" else ""
+            if (!compact && (error(kind).isNotBlank() || b.warning.isNotBlank())) "\nRefresh unavailable · tap to retry" else ""
     }
 }

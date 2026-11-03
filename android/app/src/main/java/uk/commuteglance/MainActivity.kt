@@ -6,6 +6,14 @@ import android.appwidget.AppWidgetManager
 import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
+import android.content.res.ColorStateList
+import android.view.Gravity
+import android.view.WindowInsets
+import java.time.Instant
+import java.time.Duration
 import android.os.*
 import android.text.InputType
 import android.view.View
@@ -19,46 +27,177 @@ class MainActivity : Activity() {
     private val io = Executors.newSingleThreadExecutor()
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var content: LinearLayout
-    private lateinit var output: TextView
+    private lateinit var boardContent: LinearLayout
+    private var renderKey = ""
     private var mode = "morning"
     private var busy = false
     private var settingsOpen = false
     private val tick = object : Runnable { override fun run() { if (!settingsOpen) render(); handler.postDelayed(this, 1000) } }
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        window.statusBarColor = Color.rgb(16,28,24); window.navigationBarColor = Color.rgb(16,28,24)
+        if(Build.VERSION.SDK_INT>=30) window.setDecorFitsSystemWindows(false)
+        window.statusBarColor = Color.rgb(12,13,16); window.navigationBarColor = Color.rgb(12,13,16)
         mode = Settings(this).mode().let { if(it=="off") "morning" else it }
         RefreshWorker.schedule(this); home(); refresh()
         if (Settings(this).base.isBlank()) settings()
     }
-    override fun onResume() { super.onResume(); handler.post(tick) }
+    override fun onResume() { super.onResume(); handler.post(tick); if(!settingsOpen) refresh() }
     override fun onPause() { handler.removeCallbacks(tick); super.onPause() }
     override fun onDestroy() { io.shutdownNow(); super.onDestroy() }
+    private val ink = Color.rgb(238,240,245)
+    private val muted = Color.rgb(143,149,163)
+    private val accent = Color.rgb(157,183,255)
+    private val amber = Color.rgb(229,185,111)
+    private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
+    private fun shape(fill: Int, border: Int = Color.rgb(43,46,55), radius: Float = 16f) = GradientDrawable().apply {
+        setColor(fill); cornerRadius=dp(radius.toInt()).toFloat(); setStroke(dp(1),border)
+    }
+    private fun column(parent: LinearLayout, gap: Int = 0): LinearLayout = LinearLayout(this).apply {
+        orientation=LinearLayout.VERTICAL
+        parent.addView(this,LinearLayout.LayoutParams(-1,-2).apply { topMargin=dp(gap) })
+    }
+    private fun row(parent: LinearLayout): LinearLayout = LinearLayout(this).apply {
+        orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL
+        parent.addView(this,LinearLayout.LayoutParams(-1,-2))
+    }
+    private fun label(parent: LinearLayout, value: String, size: Float=14f, color: Int=ink, bold: Boolean=false): TextView = TextView(this).apply {
+        text=value; textSize=size; setTextColor(color); includeFontPadding=false
+        typeface=Typeface.create(if(bold) "sans-serif-medium" else "sans-serif",Typeface.NORMAL)
+        parent.addView(this,LinearLayout.LayoutParams(-2,-2))
+    }
+    private fun space(parent: LinearLayout, height: Int) { parent.addView(View(this),LinearLayout.LayoutParams(1,dp(height))) }
+    private fun divider(parent: LinearLayout) { parent.addView(View(this).apply {setBackgroundColor(Color.rgb(39,42,50))},LinearLayout.LayoutParams(-1,dp(1)).apply {topMargin=dp(14);bottomMargin=dp(14)}) }
+    private fun card(parent: LinearLayout): LinearLayout = column(parent,16).apply {
+        background=shape(Color.rgb(20,22,27));setPadding(dp(18),dp(18),dp(18),dp(18))
+    }
+    private fun action(parent: LinearLayout, title: String, primary: Boolean=false, run: () -> Unit): TextView = TextView(this).apply {
+        text=title;textSize=14f;setTextColor(if(primary) Color.rgb(15,23,43) else ink)
+        typeface=Typeface.create("sans-serif-medium",Typeface.NORMAL);gravity=Gravity.CENTER;minHeight=dp(48)
+        background=RippleDrawable(ColorStateList.valueOf(0x224D76CC),shape(if(primary) accent else Color.rgb(26,29,36),radius=12f),null)
+        setPadding(dp(14),dp(12),dp(14),dp(12));isClickable=true;isFocusable=true;setOnClickListener {run()}
+        parent.addView(this,LinearLayout.LayoutParams(-1,-2).apply {topMargin=dp(10)})
+    }
     private fun root() {
-        val scroll = ScrollView(this); content = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(24,32,24,32); setBackgroundColor(Color.rgb(16,28,24)) }
+        val scroll=ScrollView(this).apply {isFillViewport=true;setBackgroundColor(Color.rgb(12,13,16));clipToPadding=false}
+        content=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;setPadding(dp(22),dp(24),dp(22),dp(28))}
         scroll.addView(content)
-        scroll.setOnApplyWindowInsetsListener { v, insets ->
-            v.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop, insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
-            insets
+        scroll.setOnApplyWindowInsetsListener { v, i ->
+            if(Build.VERSION.SDK_INT>=30) {
+                val bars=i.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+                v.setPadding(bars.left,bars.top,bars.right,bars.bottom)
+            } else v.setPadding(i.systemWindowInsetLeft,i.systemWindowInsetTop,i.systemWindowInsetRight,i.systemWindowInsetBottom)
+            i
         }
         setContentView(scroll)
     }
-    private fun text(value: String, size: Float = 16f): TextView = TextView(this).apply { text=value;textSize=size;setTextColor(Color.rgb(222,239,227));setPadding(0,12,0,12);content.addView(this) }
-    private fun button(label: String, action: () -> Unit) { content.addView(Button(this).apply { text=label;setOnClickListener { action() } }) }
+    private fun text(value: String, size: Float=16f): TextView = label(content,value,size).apply {setPadding(0,dp(10),0,dp(8))}
+    private fun button(label: String, action: () -> Unit) { action(content,label,run=action) }
     private fun home() {
-        settingsOpen=false; root(); text("Commute Glance",28f)
-        button(if(mode=="morning") "To work ↓  ·  Switch to homebound" else "Going home ↓  ·  Switch to morning") { mode=if(mode=="morning") "evening" else "morning";home();refresh() }
-        output=text("",18f); button("↻ Refresh departures") { refresh() }
-        button("Settings & stop picker") { settings() }
-        button("Add home-screen widget") { val manager=getSystemService(AppWidgetManager::class.java); if(manager.isRequestPinAppWidgetSupported) manager.requestPinAppWidget(ComponentName(this,CommuteWidget::class.java),null,null) else toast("Long-press your home screen and choose Widgets") }
-        text("Times are predictions. Cached estimates are not new live updates.\nData: TfL and National Rail.",12f); render()
+        settingsOpen=false;root();renderKey=""
+        val header=row(content)
+        header.addView(ImageView(this).apply {setImageResource(R.drawable.ic_launcher_foreground);background=shape(Color.rgb(28,35,54),radius=10f);contentDescription="Commute Glance"},LinearLayout.LayoutParams(dp(36),dp(36)))
+        label(header,"  commute / glance",16f,ink,true).apply {layoutParams=LinearLayout.LayoutParams(0,-2,1f)}
+        label(header,"↻",26f,accent).apply {
+            gravity=Gravity.CENTER;minWidth=dp(44);minHeight=dp(48);contentDescription="Refresh departures"
+            isClickable=true;isFocusable=true;setOnClickListener {refresh()}
+        }
+        label(header,"⋯",26f,muted).apply {
+            gravity=Gravity.CENTER;minWidth=dp(44);minHeight=dp(48);contentDescription="Settings"
+            isClickable=true;isFocusable=true;setOnClickListener {settings()}
+        }
+        space(content,30)
+        text("Your next move.",32f).apply {typeface=Typeface.create("sans-serif-light",Typeface.NORMAL)}
+        label(content,"Bus arrivals and fast trains.",13f,muted)
+        val tabs=row(column(content,24)).apply {background=shape(Color.rgb(20,22,27),radius=12f);setPadding(dp(4),dp(4),dp(4),dp(4))}
+        for ((key,title) in listOf("morning" to "To work  ↗","evening" to "Going home  ↙")) {
+            label(tabs,title,14f,if(mode==key) ink else muted,true).apply {
+                gravity=Gravity.CENTER;minHeight=dp(42);layoutParams=LinearLayout.LayoutParams(0,-2,1f)
+                if(mode==key) background=shape(Color.rgb(42,46,57),radius=9f)
+                isClickable=true;isFocusable=true;setOnClickListener {if(mode!=key){mode=key;home();refresh()}}
+            }
+        }
+        boardContent=column(content)
+        val actions=row(column(content,14))
+        action(actions,"↻  Refresh",true) {refresh()}.apply {layoutParams=LinearLayout.LayoutParams(0,-2,1f).apply {rightMargin=dp(8)}}
+        action(actions,"Settings") {settings()}.apply {layoutParams=LinearLayout.LayoutParams(0,-2,1f)}
+        action(content,"＋  Add home-screen widget") {
+            val manager=getSystemService(AppWidgetManager::class.java)
+            if(manager.isRequestPinAppWidgetSupported) manager.requestPinAppWidget(ComponentName(this,CommuteWidget::class.java),null,null)
+            else toast("Long-press your home screen and choose Widgets")
+        }
+        space(content,20)
+        label(content,"MON / THU     07:00–08:30 · 16:00–19:00",10f,muted,true).apply {text="${Settings(this@MainActivity).get("days","1,4").split(',').mapNotNull {it.trim().toIntOrNull()}.joinToString(" / ") {listOf("MON","TUE","WED","THU","FRI","SAT","SUN").getOrElse(it-1){"?"}}}   ·   Europe/London"}
+        space(content,8)
+        label(content,"Predictions, not guarantees. Background updates are best effort.",11f,muted)
+        render()
     }
     private fun render() {
-        if(!::output.isInitialized || settingsOpen) return
-        val repo=Repository(this)
-        output.text= (if(busy) "Refreshing…\n\n" else "") + if(mode=="morning")
-            "BUS · ${repo.settings.stopName}\n${repo.summary("bus",4,true)}\n\nEAST CROYDON → LONDON BRIDGE\n${repo.summary("out",4,true)}"
-        else "LONDON BRIDGE → EAST CROYDON\n${repo.summary("home",6,true)}"
+        if(!::boardContent.isInitialized || settingsOpen) return
+        val repo=Repository(this);val kind=if(mode=="morning") "bus" else "home"
+        val signature="$mode|$busy|${repo.summary(kind,4,true)}|${repo.summary("out",2,true)}"
+        if(signature==renderKey) return
+        renderKey=signature;boardContent.removeAllViews()
+        val b=repo.board(kind);val now=Instant.now()
+        val age=b?.let {Duration.between(it.fetched,now).seconds.coerceAtLeast(0)}
+        val stale=b!=null && (b.stale || b.warning.isNotBlank() || age!!>90 || repo.error(kind).isNotBlank() || b.sourceAt?.let {Duration.between(it,now).seconds>120}==true)
+        val expired=age!=null && age>600
+        val top=row(column(boardContent,20))
+        label(top,if(mode=="morning") "BUS DEPARTURES" else "RAIL DEPARTURES",10f,muted,true).apply {letterSpacing=.12f;layoutParams=LinearLayout.LayoutParams(0,-2,1f)}
+        label(top,if(busy) "↻  Refreshing" else if(expired) "●  Expired" else if(stale) "●  Stale" else if(b!=null) "●  ${b.source} predictions" else "○  Unavailable",11f,if(stale||expired) amber else accent)
+        if(mode=="morning") {
+            val next=b?.takeIf {!expired}?.departures?.firstOrNull {it.status!="Cancelled" && it.expected?.isAfter(now.plusSeconds(repo.settings.walk*60L))==true}
+            val hero=card(boardContent)
+            label(hero,"NEXT CATCHABLE BUS",10f,muted,true).apply {letterSpacing=.1f}
+            space(hero,12)
+            if(next!=null) {
+                val line=row(hero)
+                label(line,"${CommuteRules.minutesRemaining(next.expected!!,now)}",60f,ink).apply {typeface=Typeface.create("sans-serif-light",Typeface.NORMAL)}
+                label(line,"  min",17f,muted)
+                label(line,"  ${next.route}  ↗",21f,accent,true).apply {layoutParams=LinearLayout.LayoutParams(0,-2,1f);gravity=Gravity.END}
+                label(hero,next.destination,16f,ink,true)
+                space(hero,8)
+                label(hero,"${CommuteRules.time(next.expected)} expected · ${repo.settings.walk} min walk" + if(stale) " · cached" else " · estimate",12f,if(stale) amber else muted)
+            } else {
+                label(hero,if(expired) "Refresh to continue" else "Waiting for arrivals",24f,ink)
+                space(hero,8);label(hero,if(expired) "Saved predictions are over 10 minutes old." else "No catchable prediction available right now.",12f,muted)
+            }
+        }
+        val arrivals=card(boardContent)
+        label(arrivals,if(mode=="morning") repo.settings.stopName else "London Bridge → East Croydon",15f,ink,true)
+        space(arrivals,5)
+        label(arrivals,if(mode=="morning") "Northbound · ${repo.settings.routes.replace(",", " / ")} · ${repo.settings.walk} min walk" else "Fast services · scheduled journey ≤20 min",11f,muted)
+        val departures=b?.takeIf {!expired}?.departures?.filter {(it.expected?:it.scheduled)?.isAfter(now.minusSeconds(60))!=false}?.take(4).orEmpty()
+        if(departures.isEmpty()) {divider(arrivals);label(arrivals,if(expired) "Data expired. Refresh required." else if(kind!="bus"&&repo.error(kind).startsWith("Rail not configured")) "Rail access is not configured." else repo.error(kind).ifBlank {"No upcoming departures in this feed."},13f,muted)}
+        for(d in departures) {
+            divider(arrivals)
+            val line=row(arrivals)
+            label(line,d.route,13f,accent,true).apply {gravity=Gravity.CENTER;background=shape(Color.rgb(30,38,58),radius=8f);setPadding(dp(8),dp(8),dp(8),dp(8))}
+            val detail=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;setPadding(dp(12),0,dp(8),0);line.addView(this,LinearLayout.LayoutParams(0,-2,1f))}
+            label(detail,d.destination,13f,ink,true)
+            space(detail,5)
+            label(detail,(d.expected?:d.scheduled)?.let {CommuteRules.time(it)+if(d.expected!=null) " expected" else " scheduled"}?:"No prediction",11f,muted)
+            val mins=d.expected?.let {CommuteRules.minutesRemaining(it,now)}
+            val state=when {d.status=="Cancelled"->"Cancelled";mins==null->d.status;mins<=0->"Elapsed";else->"~${mins}m"}
+            val right=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.END;line.addView(this,LinearLayout.LayoutParams(-2,-2))}
+            label(right,state,18f,if(stale||mins!=null&&mins<repo.settings.walk) amber else ink,true)
+            space(right,4)
+            label(right,if(d.duration>0) "${d.duration}m · P${d.platform.ifBlank {"—"}}" else if(mins!=null&&mins<=0) "refresh" else if(mins!=null&&mins<repo.settings.walk) "too soon" else "estimated",10f,muted)
+            if(d.duration>0&&d.expected!=null&&d.scheduled!=null&&d.status!="Cancelled") {
+                val delay=Duration.between(d.scheduled,d.expected).toMinutes()
+                if(delay>0) {space(arrivals,6);label(arrivals,"+${delay}m late · normally ${d.duration} min",11f,amber)}
+            }
+        }
+        if(b!=null) {divider(arrivals);label(arrivals,"${if(stale||expired) "STALE · " else ""}${b.source} checked ${CommuteRules.time(b.fetched)}"+if(age!=null) " · ${age/60}m ago" else "",11f,if(stale||expired) amber else muted)}
+        if(b!=null&&(repo.error(kind).isNotBlank()||b.warning.isNotBlank())) {space(arrivals,6);label(arrivals,if(expired) "Reconnect and refresh to fetch new data." else "Refresh unavailable. Showing cached estimates.",11f,amber)}
+        if(mode=="morning") {
+            val rail=card(boardContent)
+            label(rail,"THEN, THE TRAIN",10f,muted,true).apply {letterSpacing=.1f}
+            space(rail,10);label(rail,"East Croydon  →  London Bridge",15f,ink,true)
+            space(rail,8)
+            val configured=!repo.error("out").startsWith("Rail not configured")
+            label(rail,if(configured) repo.summary("out",2,true) else "Rail not connected",13f,if(configured) muted else amber)
+            if(!configured){space(rail,6);label(rail,"National Rail access is needed. Bus arrivals are ready to use.",12f,muted)}
+        }
     }
     private fun refresh() {
         if(busy) return; busy=true; render()
@@ -71,19 +210,30 @@ class MainActivity : Activity() {
     }
     private fun toast(s:String) {Toast.makeText(this,s,Toast.LENGTH_LONG).show()}
     private fun settings() {
-        settingsOpen=true;root();text("Your commute",26f)
+        settingsOpen=true;root();button("‹  Back to departures") {home()};space(content,18);text("Your commute",30f);label(content,"Connection, journey and schedule.",13f,muted);space(content,20)
         val s=Settings(this);val fields=linkedMapOf<String,EditText>()
-        fun field(key:String,label:String,default:String,secret:Boolean=false) {text(label,14f);fields[key]=EditText(this).apply {setText(s.get(key,default));setSingleLine();setTextColor(Color.WHITE);inputType=if(secret) InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD else InputType.TYPE_CLASS_TEXT;content.addView(this)} }
-        field("base","Backend URL (HTTPS; debug builds allow local HTTP)","")
+        fun field(key:String,label:String,default:String,secret:Boolean=false) {
+            val heading=when(key){"base"->"01   CONNECTION";"stop"->"02   JOURNEY";"days"->"03   SCHEDULE";else->null}
+            if(heading!=null){space(content,20);text(heading,11f).apply {setTextColor(accent);letterSpacing=.12f}}
+            text(label,12f).setTextColor(muted)
+            fields[key]=EditText(this).apply {
+                setText(s.get(key,default));setSingleLine();setTextColor(ink);textSize=15f;minHeight=dp(50)
+                setPadding(dp(14),dp(10),dp(14),dp(10));background=shape(Color.rgb(22,24,30),radius=10f)
+                contentDescription=label
+                inputType=if(secret) InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD else InputType.TYPE_CLASS_TEXT
+                content.addView(this,LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(6)})
+            }
+        }
+        field("base","Backend URL","")
         field("token","Backend access token","",true)
         field("stop","Bus stop ID","490007669N")
         field("stopName","Stop label","Haling Park Gardens · GW")
         field("routes","Bus routes, comma separated","166,405")
         field("walk","Walk to stop (minutes)","3")
-        field("days","Days: 1=Mon … 7=Sun, comma separated","1,4")
+        field("days","Commute days · 1 Mon, 2 Tue … 7 Sun","1,4")
         field("morningStart","Morning start, HH:mm","07:00");field("morningEnd","Morning end, HH:mm","08:30")
         field("eveningStart","Afternoon start, HH:mm","16:00");field("eveningEnd","Afternoon end, HH:mm","19:00")
-        val notifications=CheckBox(this).apply {text="Silent commute notification on lock screen";isChecked=s.notifications;setTextColor(Color.WHITE);content.addView(this)}
+        val notifications=CheckBox(this).apply {text="Silent lock-screen notification";isChecked=s.notifications;setTextColor(ink);buttonTintList=ColorStateList.valueOf(accent);setPadding(0,dp(16),0,dp(16));content.addView(this)}
         fun save():Boolean {
             try {
                 val base=fields.getValue("base").text.toString().trim();val u=URI(base)

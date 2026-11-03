@@ -1,8 +1,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="16dp" android:background="@drawable/widget_bg">
-<TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Commute Glance" android:textColor="#B7F5CB" android:textSize="17sp" android:textStyle="bold" />
-<Chronometer android:id="@+id/remaining" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#B7F5CB" android:textSize="19sp" />
-<TextView android:id="@+id/countdown_note" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#D7D9B0" android:textSize="11sp" android:text="Estimate only · negative countdown = prediction elapsed" />
-<TextView android:id="@+id/rows" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:textColor="#FFFFFF" android:textSize="15sp" android:maxLines="18" android:text="Tap to set up" />
-<Chronometer android:id="@+id/age" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#D7D9B0" android:textSize="12sp" />
-<TextView android:id="@+id/refresh" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="40dp" android:gravity="center_vertical" android:text="↻ Refresh  ·  Tap board to open" android:textColor="#B7F5CB" android:textSize="13sp" />
+<TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Commute Glance" android:textColor="#9DB7FF" android:textSize="17sp" android:textStyle="bold" />
+<Chronometer android:id="@+id/remaining" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#9DB7FF" android:textSize="19sp" />
+<TextView android:id="@+id/countdown_note" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#A8AEBD" android:textSize="11sp" android:text="Estimate only · negative countdown = prediction elapsed" />
+<TextView android:id="@+id/rows" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:textColor="#EEF0F5" android:textSize="13sp" android:maxLines="18" android:text="Tap to set up" />
+<Chronometer android:id="@+id/age" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#A8AEBD" android:textSize="12sp" />
+<TextView android:id="@+id/refresh" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="40dp" android:gravity="center_vertical" android:text="↻ Refresh  ·  Tap board to open" android:textColor="#9DB7FF" android:textSize="13sp" />
 </LinearLayout>

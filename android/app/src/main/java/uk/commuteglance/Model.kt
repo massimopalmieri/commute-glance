@@ -16,6 +16,22 @@ object CommuteRules {
     fun time(at: Instant): String = DateTimeFormatter.ofPattern("HH:mm").withZone(zone).format(at)
 }
 data class Departure(val route: String, val destination: String, val expected: Instant?, val scheduled: Instant?, val platform: String, val status: String, val duration: Int) {
+    fun widgetLine(now: Instant, walk: Int): String {
+        val at = expected ?: scheduled
+        val time = at?.let { CommuteRules.time(it) } ?: "Time unknown"
+        val remaining = expected?.let { CommuteRules.minutesRemaining(it, now) }
+        val state = when {
+            status == "Cancelled" -> "CANCELLED"
+            remaining == null -> status.ifBlank { "No prediction" }
+            remaining <= 0 -> "elapsed · refresh"
+            duration == 0 && remaining < walk -> "too soon"
+            else -> "est."
+        }
+        val delay = if (duration > 0 && expected != null && scheduled != null && status != "Cancelled")
+            Duration.between(scheduled, expected).toMinutes() else 0
+        val details = if (duration > 0) " · ${duration}m · P${platform.ifBlank { "—" }}" else ""
+        return "$time $route$details · $state" + if (delay > 0) " +${delay}m late" else ""
+    }
     fun line(now: Instant, walk: Int, countdown: Boolean = true): String {
         val at = expected ?: scheduled
         val whenText = if (at == null) "Time unknown" else CommuteRules.time(at)

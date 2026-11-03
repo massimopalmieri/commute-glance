@@ -1,0 +1,19 @@
+[Unit]
+Description=Commute Glance departures backend
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+ExecStart=/opt/commute-glance/backend
+EnvironmentFile=/etc/commute-glance.env
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
