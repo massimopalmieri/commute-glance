@@ -105,9 +105,6 @@ class MainActivity : Activity() {
             gravity=Gravity.CENTER;minWidth=dp(44);minHeight=dp(48);contentDescription="Settings"
             isClickable=true;isFocusable=true;setOnClickListener {settings()}
         }
-        space(content,30)
-        text("Your next move.",32f).apply {typeface=Typeface.create("sans-serif-light",Typeface.NORMAL)}
-        label(content,"Bus arrivals and fast trains.",13f,muted)
         val tabs=row(column(content,24)).apply {background=shape(Color.rgb(20,22,27),radius=12f);setPadding(dp(4),dp(4),dp(4),dp(4))}
         for ((key,title) in listOf("morning" to "To work  ↗","evening" to "Going home  ↙")) {
             label(tabs,title,14f,if(mode==key) ink else muted,true).apply {
@@ -127,8 +124,6 @@ class MainActivity : Activity() {
         }
         space(content,20)
         label(content,"MON / THU     07:00–08:30 · 16:00–19:00",10f,muted,true).apply {text="${Settings(this@MainActivity).get("days","1,4").split(',').mapNotNull {it.trim().toIntOrNull()}.joinToString(" / ") {listOf("MON","TUE","WED","THU","FRI","SAT","SUN").getOrElse(it-1){"?"}}}   ·   Europe/London"}
-        space(content,8)
-        label(content,"Predictions, not guarantees. Background updates are best effort.",11f,muted)
         render()
     }
     private fun render() {
@@ -143,7 +138,7 @@ class MainActivity : Activity() {
         val expired=age!=null && age>600
         val top=row(column(boardContent,20))
         label(top,if(mode=="morning") "BUS DEPARTURES" else "RAIL DEPARTURES",10f,muted,true).apply {letterSpacing=.12f;layoutParams=LinearLayout.LayoutParams(0,-2,1f)}
-        label(top,if(busy) "↻  Refreshing" else if(expired) "●  Expired" else if(stale) "●  Stale" else if(b!=null) "●  ${b.source} predictions" else "○  Unavailable",11f,if(stale||expired) amber else accent)
+        label(top,if(busy) "↻  Refreshing" else if(expired) "●  Expired" else if(stale) "●  Stale" else if(b!=null) "●  ${b.source}" else "○  Unavailable",11f,if(stale||expired) amber else accent)
         if(mode=="morning") {
             val next=b?.takeIf {!expired}?.departures?.firstOrNull {it.status!="Cancelled" && it.expected?.isAfter(now.plusSeconds(repo.settings.walk*60L))==true}
             val hero=card(boardContent)
@@ -156,10 +151,10 @@ class MainActivity : Activity() {
                 label(line,"  ${next.route}  ↗",21f,accent,true).apply {layoutParams=LinearLayout.LayoutParams(0,-2,1f);gravity=Gravity.END}
                 label(hero,next.destination,16f,ink,true)
                 space(hero,8)
-                label(hero,"${CommuteRules.time(next.expected)} expected · ${repo.settings.walk} min walk" + if(stale) " · cached" else " · estimate",12f,if(stale) amber else muted)
+                label(hero,"${CommuteRules.time(next.expected)} expected · ${repo.settings.walk} min walk" + if(stale) " · cached" else "",12f,if(stale) amber else muted)
             } else {
-                label(hero,if(expired) "Refresh to continue" else "Waiting for arrivals",24f,ink)
-                space(hero,8);label(hero,if(expired) "Saved predictions are over 10 minutes old." else "No catchable prediction available right now.",12f,muted)
+                label(hero,if(expired) "Refresh required" else "No catchable bus",24f,ink)
+                if(expired) {space(hero,8);label(hero,"Data is over 10 minutes old.",12f,muted)}
             }
         }
         val arrivals=card(boardContent)
@@ -180,8 +175,8 @@ class MainActivity : Activity() {
             val state=when {d.status=="Cancelled"->"Cancelled";mins==null->d.status;mins<=0->"Elapsed";else->"~${mins}m"}
             val right=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;gravity=Gravity.END;line.addView(this,LinearLayout.LayoutParams(-2,-2))}
             label(right,state,18f,if(stale||mins!=null&&mins<repo.settings.walk) amber else ink,true)
-            space(right,4)
-            label(right,if(d.duration>0) "${d.duration}m · P${d.platform.ifBlank {"—"}}" else if(mins!=null&&mins<=0) "refresh" else if(mins!=null&&mins<repo.settings.walk) "too soon" else "estimated",10f,muted)
+            val detailText=if(d.duration>0) "${d.duration}m · P${d.platform.ifBlank {"—"}}" else if(mins!=null&&mins<=0) "refresh" else if(mins!=null&&mins<repo.settings.walk) "too soon" else ""
+            if(detailText.isNotEmpty()) {space(right,4);label(right,detailText,10f,muted)}
             if(d.duration>0&&d.expected!=null&&d.scheduled!=null&&d.status!="Cancelled") {
                 val delay=Duration.between(d.scheduled,d.expected).toMinutes()
                 if(delay>0) {space(arrivals,6);label(arrivals,"+${delay}m late · normally ${d.duration} min",11f,amber)}
@@ -191,12 +186,11 @@ class MainActivity : Activity() {
         if(b!=null&&(repo.error(kind).isNotBlank()||b.warning.isNotBlank())) {space(arrivals,6);label(arrivals,if(expired) "Reconnect and refresh to fetch new data." else "Refresh unavailable. Showing cached estimates.",11f,amber)}
         if(mode=="morning") {
             val rail=card(boardContent)
-            label(rail,"THEN, THE TRAIN",10f,muted,true).apply {letterSpacing=.1f}
-            space(rail,10);label(rail,"East Croydon  →  London Bridge",15f,ink,true)
+            label(rail,"East Croydon  →  London Bridge",15f,ink,true)
             space(rail,8)
             val configured=!repo.error("out").startsWith("Rail not configured")
             label(rail,if(configured) repo.summary("out",2,true) else "Rail not connected",13f,if(configured) muted else amber)
-            if(!configured){space(rail,6);label(rail,"National Rail access is needed. Bus arrivals are ready to use.",12f,muted)}
+            if(!configured){space(rail,6);label(rail,"Add rail credentials on the backend.",12f,muted)}
         }
     }
     private fun refresh() {
@@ -210,7 +204,7 @@ class MainActivity : Activity() {
     }
     private fun toast(s:String) {Toast.makeText(this,s,Toast.LENGTH_LONG).show()}
     private fun settings() {
-        settingsOpen=true;root();button("‹  Back to departures") {home()};space(content,18);text("Your commute",30f);label(content,"Connection, journey and schedule.",13f,muted);space(content,20)
+        settingsOpen=true;root();button("‹  Back to departures") {home()};space(content,18);text("Settings",30f);space(content,12)
         val s=Settings(this);val fields=linkedMapOf<String,EditText>()
         fun field(key:String,label:String,default:String,secret:Boolean=false) {
             val heading=when(key){"base"->"01   CONNECTION";"stop"->"02   JOURNEY";"days"->"03   SCHEDULE";else->null}
@@ -257,7 +251,7 @@ class MainActivity : Activity() {
             }
         }
         button("Back") {home()}
-        text("All times use Europe/London. Background refresh is best effort; Android may delay it. Lock-screen visibility also depends on your system notification settings.",13f)
+        text("Europe/London. Android may delay background updates.",13f)
     }
     private fun searchStops(query:String,fields:Map<String,EditText>) {
         toast("Searching stops…")

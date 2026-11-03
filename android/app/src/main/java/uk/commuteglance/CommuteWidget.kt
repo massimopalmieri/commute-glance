@@ -70,10 +70,10 @@ class CommuteWidget:AppWidgetProvider() {
             if(!active) {
                 val next=CommuteRules.nextWindow(ZonedDateTime.now(),s.get("days","1,4").split(',').mapNotNull {it.trim().toIntOrNull()}.toSet(),
                     LocalTime.parse(s.get("morningStart","07:00")),LocalTime.parse(s.get("eveningStart","16:00")))
-                views.setTextViewText(R.id.next_window,next?.first?.format(DateTimeFormatter.ofPattern("EEE, HH:mm",Locale.UK)) ?: "Your schedule")
-                views.setTextViewText(R.id.next_direction,if(next?.second=="evening") "London Bridge → East Croydon" else "To work · buses + fast trains")
+                views.setTextViewText(R.id.next_window,next?.first?.format(DateTimeFormatter.ofPattern("EEE, HH:mm",Locale.UK)) ?: "Schedule")
+                views.setTextViewText(R.id.next_direction,if(next?.second=="evening") "London Bridge → East Croydon" else "East Croydon → London Bridge")
                 views.setTextViewText(R.id.off_detail,"${s.stopName}\n${s.routes.replace(","," / ")} · ${s.walk} min walk")
-                views.setTextViewText(R.id.footer,"Outside commute hours · open departures ↗")
+                views.setTextViewText(R.id.footer,"Open departures ↗")
                 return views
             }
             val now=Instant.now()
@@ -83,7 +83,7 @@ class CommuteWidget:AppWidgetProvider() {
             val stale=board!=null && (board.stale || board.warning.isNotBlank() || repo.error(kind).isNotBlank() ||
                 Duration.between(board.fetched,now).seconds>90 || board.sourceAt?.let {Duration.between(it,now).seconds>120}==true)
             views.setTextViewText(R.id.title,if(mode=="morning") "BUS ESTIMATE · ${s.walk} MIN WALK" else "FAST TRAINS · TO EAST CROYDON")
-            views.setTextViewText(R.id.freshness,when {expired->"EXPIRED";stale->"STALE";board==null->"NO DATA";else->"CACHED"})
+            views.setTextViewText(R.id.freshness,when {expired->"EXPIRED";stale->"STALE";board==null->"NO DATA";else->""})
             views.setTextColor(R.id.freshness,if(expired||stale) amber else muted)
             val departures=board?.takeUnless {expired}?.departures?.filter {
                 val at=if(it.status=="Cancelled") it.scheduled else it.expected?:it.scheduled
@@ -165,7 +165,7 @@ class CommuteWidget:AppWidgetProvider() {
             val end=LocalTime.parse(repo.settings.get(if(mode=="morning") "morningEnd" else "eveningEnd",if(mode=="morning") "08:30" else "19:00"))
             val timeout=Duration.between(now,now.with(end)).toMillis().coerceAtLeast(1000)
             val n=Notification.Builder(c,"commute").setSmallIcon(R.drawable.ic_bus).setContentTitle(title)
-                .setContentText("Cached estimates · tap to refresh").setStyle(Notification.BigTextStyle().bigText(rows))
+                .setContentText("Open departures").setStyle(Notification.BigTextStyle().bigText(rows))
                 .setContentIntent(open(c)).setVisibility(Notification.VISIBILITY_PUBLIC).setOnlyAlertOnce(true)
                 .setTimeoutAfter(timeout).setShowWhen(true).setWhen(repo.board(if(mode=="morning") "bus" else "home")?.fetched?.toEpochMilli() ?: System.currentTimeMillis()).build()
             try {nm.notify(42,n)}catch(_:SecurityException){ /* Permission declined; widget still works. */ }
