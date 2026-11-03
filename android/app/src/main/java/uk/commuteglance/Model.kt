@@ -12,6 +12,16 @@ object CommuteRules {
         val t = local.toLocalTime()
         return when { t >= morningStart && t < morningEnd -> "morning"; t >= eveningStart && t < eveningEnd -> "evening"; else -> "off" }
     }
+    // Used only outside active windows. Construct each start in London civil time,
+    // rather than adding 24 hours across a daylight-saving transition.
+    fun nextWindow(now: ZonedDateTime, days: Set<Int>, morningStart: LocalTime, eveningStart: LocalTime): Pair<ZonedDateTime, String>? {
+        val local = now.withZoneSameInstant(zone)
+        return (0L..7L).flatMap { offset ->
+            val date = local.toLocalDate().plusDays(offset)
+            if (date.dayOfWeek.value !in days) emptyList()
+            else listOf(date.atTime(morningStart).atZone(zone) to "morning", date.atTime(eveningStart).atZone(zone) to "evening")
+        }.filter { it.first.isAfter(local) }.minByOrNull { it.first.toInstant() }
+    }
     fun minutesRemaining(at: Instant, now: Instant) = ceil(Duration.between(now, at).seconds / 60.0).toLong()
     fun time(at: Instant): String = DateTimeFormatter.ofPattern("HH:mm").withZone(zone).format(at)
 }

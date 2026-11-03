@@ -1,8 +1,79 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="16dp" android:background="@drawable/widget_bg">
-<TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Commute Glance" android:textColor="#9DB7FF" android:textSize="17sp" android:textStyle="bold" />
-<Chronometer android:id="@+id/remaining" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#9DB7FF" android:textSize="19sp" />
-<TextView android:id="@+id/countdown_note" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#A8AEBD" android:textSize="11sp" android:text="Estimate only · negative countdown = prediction elapsed" />
-<TextView android:id="@+id/rows" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:textColor="#EEF0F5" android:textSize="13sp" android:maxLines="18" android:text="Tap to set up" />
-<Chronometer android:id="@+id/age" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#A8AEBD" android:textSize="12sp" />
-<TextView android:id="@+id/refresh" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="40dp" android:gravity="center_vertical" android:text="↻ Refresh  ·  Tap board to open" android:textColor="#9DB7FF" android:textSize="13sp" />
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="16dp" android:background="@drawable/widget_bg">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="32dp" android:gravity="center_vertical">
+        <ImageView android:layout_width="28dp" android:layout_height="28dp"
+            android:src="@drawable/ic_launcher_foreground" android:background="@drawable/widget_badge"
+            android:contentDescription="Commute Glance" />
+        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+            android:layout_marginStart="8dp" android:text="commute / glance" android:textSize="12sp"
+            android:fontFamily="sans-serif-medium" android:textColor="#EEF0F5" android:maxLines="1" />
+        <TextView android:id="@+id/refresh" android:layout_width="40dp" android:layout_height="32dp"
+            android:gravity="center" android:background="@drawable/widget_badge" android:text="↻"
+            android:textSize="22sp" android:textColor="#9DB7FF" android:contentDescription="Refresh departures" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/active_board" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical">
+            <TextView android:id="@+id/title" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                android:text="TO WORK" android:textSize="9sp" android:letterSpacing="0.12" android:textColor="#949BAB" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" />
+            <TextView android:id="@+id/freshness" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="ESTIMATE" android:textSize="9sp" android:fontFamily="sans-serif-medium" android:textColor="#9DB7FF" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/hero" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+            <Chronometer android:id="@+id/remaining" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                android:textSize="40sp" android:fontFamily="sans-serif-light" android:includeFontPadding="false" android:textColor="#EEF0F5" />
+            <TextView android:id="@+id/hero_route" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:background="@drawable/widget_badge" android:paddingHorizontal="10dp" android:paddingVertical="6dp"
+                android:textSize="16sp" android:fontFamily="sans-serif-medium" android:textColor="#9DB7FF" android:maxLines="1" android:maxWidth="100dp" android:ellipsize="end" />
+        </LinearLayout>
+        <TextView android:id="@+id/hero_empty" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="Refresh needed" android:textSize="24sp" android:fontFamily="sans-serif-light" android:textColor="#EEF0F5" />
+        <TextView android:id="@+id/destination" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="13sp" android:fontFamily="sans-serif-medium" android:textColor="#EEF0F5" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/expected" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="3dp" android:textSize="10sp" android:textColor="#949BAB" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/countdown_note" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="2dp" android:text="min:sec · negative = prediction elapsed" android:textSize="9sp" android:textColor="#949BAB" android:maxLines="1" />
+        <TextView android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="10dp" android:layout_marginBottom="5dp" android:background="#2B2E37" />
+        <LinearLayout android:id="@+id/row_one" android:layout_width="match_parent" android:layout_height="34dp" android:gravity="center_vertical">
+            <TextView android:id="@+id/route_one" android:layout_width="38dp" android:layout_height="wrap_content" android:textColor="#9DB7FF" android:textSize="13sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" />
+            <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+                <TextView android:id="@+id/destination_one" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="#EEF0F5" android:maxLines="1" android:ellipsize="end" />
+                <TextView android:id="@+id/state_one" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="9sp" android:textColor="#949BAB" android:maxLines="1" android:ellipsize="end" />
+            </LinearLayout>
+            <TextView android:id="@+id/time_one" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="12sp" android:fontFamily="monospace" android:textColor="#EEF0F5" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/row_two" android:layout_width="match_parent" android:layout_height="34dp" android:gravity="center_vertical">
+            <TextView android:id="@+id/route_two" android:layout_width="38dp" android:layout_height="wrap_content" android:textColor="#9DB7FF" android:textSize="13sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end" />
+            <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+                <TextView android:id="@+id/destination_two" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="#EEF0F5" android:maxLines="1" android:ellipsize="end" />
+                <TextView android:id="@+id/state_two" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="9sp" android:textColor="#949BAB" android:maxLines="1" android:ellipsize="end" />
+            </LinearLayout>
+            <TextView android:id="@+id/time_two" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="12sp" android:fontFamily="monospace" android:textColor="#EEF0F5" />
+        </LinearLayout>
+        <TextView android:id="@+id/rail" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp"
+            android:textSize="10sp" android:textColor="#949BAB" android:maxLines="2" android:ellipsize="end" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/off_board" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical" android:gravity="center_vertical" android:visibility="gone">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="NEXT COMMUTE" android:textSize="9sp" android:letterSpacing="0.15" android:textColor="#949BAB" android:fontFamily="sans-serif-medium" />
+        <TextView android:id="@+id/next_window" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp"
+            android:textSize="30sp" android:fontFamily="sans-serif-light" android:textColor="#EEF0F5" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/next_direction" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp"
+            android:textSize="13sp" android:textColor="#9DB7FF" android:fontFamily="sans-serif-medium" />
+        <TextView android:id="@+id/off_detail" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
+            android:textSize="11sp" android:textColor="#949BAB" android:maxLines="2" android:ellipsize="end" />
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="8dp">
+        <TextView android:layout_width="match_parent" android:layout_height="1dp" android:background="#2B2E37" android:layout_marginBottom="7dp" />
+        <Chronometer android:id="@+id/age" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="10sp" android:textColor="#A8AEBD" android:fontFamily="monospace" android:maxLines="1" />
+        <TextView android:id="@+id/footer" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="2dp" android:text="Stale after 1:30 · tap to open" android:textSize="9sp" android:textColor="#949BAB" android:maxLines="1" />
+    </LinearLayout>
 </LinearLayout>

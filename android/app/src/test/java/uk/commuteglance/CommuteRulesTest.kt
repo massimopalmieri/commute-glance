@@ -8,6 +8,19 @@ class CommuteRulesTest {
     @Test fun windowEndExcluded(){assertEquals("off",mode("2026-11-02T08:30:00Z"))}
     @Test fun weekendOff(){assertEquals("off",mode("2026-11-01T07:30:00Z"))}
     @Test fun evening(){assertEquals("evening",mode("2026-11-02T16:00:00Z"))}
+    @Test fun nextWindowUsesConfiguredDaysAndBothDirections(){
+        val next=CommuteRules.nextWindow(ZonedDateTime.parse("2026-11-03T21:30:00Z"),setOf(1,4),LocalTime.of(7,0),LocalTime.of(16,0))!!
+        assertEquals(Instant.parse("2026-11-05T07:00:00Z"),next.first.toInstant())
+        assertEquals("morning",next.second)
+        val afternoon=CommuteRules.nextWindow(ZonedDateTime.parse("2026-11-05T09:00:00Z"),setOf(1,4),LocalTime.of(7,0),LocalTime.of(16,0))!!
+        assertEquals("evening",afternoon.second)
+        assertEquals(16,afternoon.first.hour)
+    }
+    @Test fun nextWindowCrossesClockChangeInLondonTime(){
+        val next=CommuteRules.nextWindow(ZonedDateTime.parse("2026-10-24T20:00:00Z"),setOf(1),LocalTime.of(7,0),LocalTime.of(16,0))!!
+        assertEquals(Instant.parse("2026-10-26T07:00:00Z"),next.first.toInstant())
+        assertNull(CommuteRules.nextWindow(ZonedDateTime.now(),emptySet(),LocalTime.of(7,0),LocalTime.of(16,0)))
+    }
     @Test fun elapsedNeverSaysDue(){val now=Instant.parse("2026-11-02T07:30:00Z");val d=Departure("166","Croydon",now.minusSeconds(1),null,"","Predicted",0);assertTrue(d.line(now,3).contains("elapsed"))}
     @Test fun cancelledNeverCountsDown(){val now=Instant.now();val d=Departure("Train","LBG",now.plusSeconds(300),now,"","Cancelled",15);assertTrue(d.line(now,3).contains("CANCELLED"))}
     @Test fun delayedTrainShowsDelay(){val now=Instant.now();val d=Departure("Train","LBG",now.plusSeconds(600),now.plusSeconds(300),"4","Expected",15);assertTrue(d.line(now,3).contains("+5m late"))}

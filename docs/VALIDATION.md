@@ -36,3 +36,11 @@ The initial APK is a development build. Do not interpret best-effort refresh as 
 - Connected Tailscale on the Pixel, configured Pi HTTPS URL and token directly into private app settings, and confirmed fresh real arrivals with ADB reverse removed. Credentials were not printed, embedded in the APK or committed.
 - Temporary all-day test windows were restored to Monday/Thursday, 07:00–08:30 and 16:00–19:00, 3-minute walk. Notifications remain opted in; outside windows the notification is removed and widget is inactive. Screen timeout restored after UI testing.
 - Rail is explicitly unavailable. Live National Rail subscription, cellular handover, scheduled-window timing, Pi reboot recovery and extended screen-off behaviour remain outstanding.
+
+## Widget redesign follow-up
+
+- Replaced the text block with a branded header, a large estimated countdown and route badge, separate departure rows, rail status, and a fixed data-age footer. The selected estimate is not repeated in the smaller rows.
+- Added an off-hours view showing the next configured commute start in Europe/London, including the direction and saved stop/routes. Tests cover both daily windows, selected weekdays and the autumn clock change.
+- Widget options changes trigger a re-render. Shorter widgets and larger font settings use fewer departure rows. Verified active and off-hours rendering on the existing Pixel widget at its current size and 1.15 font scale; neither layout clipped.
+- Tapped the widget refresh control and confirmed a successful refresh worker, a newer real TfL fetch timestamp from the Pi, and retained home-screen focus. Countdown and fetch-age counters continue ticking without claiming new network data.
+- Final Android unit tests, lint and debug assembly passed. Installed with `adb install -r`. Temporary active-window test settings were restored to the saved Monday/Thursday schedule and Pi connection/token were preserved.
