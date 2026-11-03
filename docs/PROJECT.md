@@ -1,6 +1,6 @@
 # Commute Glance
 
-Status: installed and tested on a physical Pixel 7 with a redesigned native interface and adaptive launcher icon. Backend deployed to the Raspberry Pi over private Tailscale HTTPS. See docs/VALIDATION.md for evidence and remaining device tests. Live rail credentials remain outstanding.
+Status: installed and tested on a physical Pixel 7 with a redesigned native interface and adaptive launcher icon. Backend deployed to the Raspberry Pi over private Tailscale HTTPS. See docs/VALIDATION.md for evidence and remaining device tests. Live rail is connected and verified in both directions through the Pi backend.
 
 ## Goal
 A minimal native Android departure board, home-screen widget and optional silent lock-screen notification. Target device: Google Pixel 7, kept up to date. Prioritise glanceable information without opening an app; always communicate freshness honestly.

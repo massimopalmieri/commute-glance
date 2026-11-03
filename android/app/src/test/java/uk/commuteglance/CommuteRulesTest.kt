@@ -40,4 +40,11 @@ class CommuteRulesTest {
         assertTrue(cancelled.contains("CANCELLED"))
         assertFalse(cancelled.contains("est."))
     }
+    @Test fun singleLineRailSummaryKeepsPredictionPlatformAndDelay(){
+        val scheduled=Instant.parse("2026-11-02T07:30:00Z")
+        val d=Departure("Southern","LBG",scheduled.plusSeconds(180),scheduled,"4","Expected",17)
+        assertEquals("~07:33 · 17m · P4 · +3m",d.railWidgetLine())
+        assertEquals("07:30 CANCELLED",d.copy(expected=null,platform="",status="Cancelled").railWidgetLine())
+        assertTrue(d.copy(expected=null,status="Delayed").railWidgetLine().contains("scheduled"))
+    }
 }

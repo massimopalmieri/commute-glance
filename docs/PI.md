@@ -7,7 +7,7 @@ Deployed 3 November 2026 on `massimopalmieri@raspberrypi5`, Linux ARM64.
 - Listener: `127.0.0.1:8080` on the Pi.
 - Private HTTPS URL: `https://raspberrypi5.tailc9e937.ts.net:10443`.
 - Tailscale Serve forwards HTTPS port 10443 to the loopback backend. Existing services on 443, 8443 and 9443 were preserved. No Funnel or public exposure was enabled.
-- Root-only configuration: `/etc/commute-glance.env`, mode 0600. Contains `API_TOKEN` and `LISTEN_ADDR`. The random token was transferred directly to the app's private settings without printing it or writing it into the checkout/APK.
+- Root-only configuration: `/etc/commute-glance.env`, mode 0600. Contains `API_TOKEN`, `LISTEN_ADDR`, `RAIL_BASE_URL` and `RAIL_API_KEY`. The random token was transferred directly to the app's private settings without printing it or writing it into the checkout/APK.
 
 The Pixel uses the Pi URL and token. Tailscale must be connected on the Pixel; Mac sleep and ADB disconnection no longer affect this connection. The Mac development backend was left running as requested and can still be selected using the local setup in [MAC_PIXEL.md](MAC_PIXEL.md).
 
@@ -20,7 +20,7 @@ ssh massimopalmieri@raspberrypi5 'sudo journalctl -u commute-glance -n 50 --no-p
 curl -f https://raspberrypi5.tailc9e937.ts.net:10443/healthz
 ```
 
-Health is public within the tailnet. Departures require the bearer token and return HTTP 401 without it. Do not put that token in shared terminal output or Git. To add rail access, edit the root-only environment file locally on the Pi with `sudoedit /etc/commute-glance.env`, add the subscribed `RAIL_BASE_URL` and `RAIL_AUTHORIZATION`, then restart the service. Keep `API_TOKEN` unchanged unless also updating the app.
+Health is public within the tailnet. Departures require the bearer token and return HTTP 401 without it. Do not put that token in shared terminal output or Git. Rail access is configured using the subscribed `RAIL_BASE_URL` and `RAIL_API_KEY`. To update it, edit the root-only environment file locally on the Pi with `sudoedit /etc/commute-glance.env`, then restart the service. Keep `API_TOKEN` unchanged unless also updating the app.
 
 ## Update the backend from the Mac
 
@@ -39,4 +39,4 @@ The service definition is tracked in `deploy/commute-glance.service`; configurat
 
 Settings retain the requested Monday/Thursday commute windows, stop GW, routes 166/405 and 3-minute walk. The silent notification is opt-in and was granted notification permission. Android's “Show silent notifications” lock-screen setting was enabled so it can appear there; this system option also affects other silent notifications. The existing compact lock-screen layout was retained. Expand the notification for the detailed snapshot.
 
-Rail needs a National Rail LDBWS Public JSON subscription. It is shown as unavailable until configured. No train fixtures are presented as live data.
+Rail is connected to the active Rail Data Marketplace Live Departure Board subscription. Real ECR→LBG and LBG→ECR boards, scheduled-duration filtering, platforms and delays were verified on 3 November 2026. Credentials remain in the root-only backend environment; the phone only stores its own backend token. No train fixtures are presented as live data.

@@ -26,6 +26,14 @@ object CommuteRules {
     fun time(at: Instant): String = DateTimeFormatter.ofPattern("HH:mm").withZone(zone).format(at)
 }
 data class Departure(val route: String, val destination: String, val expected: Instant?, val scheduled: Instant?, val platform: String, val status: String, val duration: Int) {
+    fun railWidgetLine(): String {
+        val at = if(status == "Cancelled") scheduled else expected ?: scheduled
+        val time = at?.let { CommuteRules.time(it) } ?: "Time unknown"
+        if(status == "Cancelled") return "$time CANCELLED"
+        val timing = if(expected != null) "~$time" else "$time scheduled"
+        val delay = if(expected != null && scheduled != null) Duration.between(scheduled,expected).toMinutes() else 0
+        return "$timing · ${duration}m · P${platform.ifBlank { "—" }}" + if(delay > 0) " · +${delay}m" else ""
+    }
     fun widgetLine(now: Instant, walk: Int): String {
         val at = expected ?: scheduled
         val time = at?.let { CommuteRules.time(it) } ?: "Time unknown"

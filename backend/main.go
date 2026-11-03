@@ -44,11 +44,11 @@ type entry struct {
 	expires time.Time
 }
 type server struct {
-	client                           *http.Client
-	tfl, rail, railAuth, key, tflKey string
-	mu                               sync.Mutex
-	cache                            map[string]entry
-	now                              func() time.Time
+	client                                       *http.Client
+	tfl, rail, railAuth, railAPIKey, key, tflKey string
+	mu                                           sync.Mutex
+	cache                                        map[string]entry
+	now                                          func() time.Time
 }
 
 func env(k, d string) string {
@@ -63,7 +63,7 @@ func main() {
 	if key == "" && addr != "127.0.0.1:8080" {
 		log.Fatal("API_TOKEN is required when using a custom listen address")
 	}
-	s := &server{client: &http.Client{Timeout: 12 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse }}, tfl: "https://api.tfl.gov.uk", rail: os.Getenv("RAIL_BASE_URL"), railAuth: os.Getenv("RAIL_AUTHORIZATION"), key: key, tflKey: os.Getenv("TFL_APP_KEY"), cache: map[string]entry{}, now: time.Now}
+	s := &server{client: &http.Client{Timeout: 12 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse }}, tfl: "https://api.tfl.gov.uk", rail: os.Getenv("RAIL_BASE_URL"), railAuth: os.Getenv("RAIL_AUTHORIZATION"), railAPIKey: os.Getenv("RAIL_API_KEY"), key: key, tflKey: os.Getenv("TFL_APP_KEY"), cache: map[string]entry{}, now: time.Now}
 	if s.rail != "" {
 		u, e := url.Parse(s.rail)
 		if e != nil || u.Scheme != "https" || u.Host == "" {
@@ -105,14 +105,24 @@ func write(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 func (s *server) get(ctx context.Context, path, auth string, out any) error {
+	headers := http.Header{}
+	if auth != "" {
+		headers.Set("Authorization", auth)
+	}
+	return s.getWithHeaders(ctx, path, headers, out)
+}
+
+func (s *server) getWithHeaders(ctx context.Context, path string, headers http.Header, out any) error {
 	req, e := http.NewRequestWithContext(ctx, "GET", path, nil)
 	if e != nil {
 		return e
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "CommuteGlance/0.1 (personal departure board)")
-	if auth != "" {
-		req.Header.Set("Authorization", auth)
+	for name, values := range headers {
+		for _, value := range values {
+			req.Header.Add(name, value)
+		}
 	}
 	res, e := s.client.Do(req)
 	if e != nil {
@@ -393,6 +403,19 @@ func normaliseRail(raw railBoard, to string, max int, now time.Time) Board {
 		}
 		b.Departures = append(b.Departures, Departure{ID: v.ServiceID, Route: v.Operator, Destination: to, ScheduledAt: &scheduled, ExpectedAt: expected, Platform: platform, Status: status, DurationMinutes: durationMin})
 	}
+	// A delayed fast service still qualifies by scheduled duration, but its
+	// prediction determines its position on the departure board.
+	sort.SliceStable(b.Departures, func(i, j int) bool {
+		a, z := b.Departures[i], b.Departures[j]
+		at, zt := a.ScheduledAt, z.ScheduledAt
+		if a.ExpectedAt != nil {
+			at = a.ExpectedAt
+		}
+		if z.ExpectedAt != nil {
+			zt = z.ExpectedAt
+		}
+		return at.Before(*zt)
+	})
 	return b
 }
 func (s *server) trains(w http.ResponseWriter, r *http.Request) {
@@ -402,15 +425,24 @@ func (s *server) trains(w http.ResponseWriter, r *http.Request) {
 		write(w, 400, map[string]string{"error": "Valid station codes and duration required"})
 		return
 	}
-	if s.rail == "" || s.railAuth == "" {
-		write(w, 503, map[string]string{"error": "Rail not configured: add RAIL_BASE_URL and RAIL_AUTHORIZATION on the server"})
+	if s.rail == "" || (s.railAPIKey == "" && s.railAuth == "") {
+		write(w, 503, map[string]string{"error": "Rail not configured: add RAIL_BASE_URL and RAIL_API_KEY (or RAIL_AUTHORIZATION) on the server"})
 		return
 	}
 	b, e := s.cached(fmt.Sprintf("rail:%s:%s:%d", from, to, max), func() (Board, error) {
 		var raw railBoard
 		q := url.Values{"numRows": {"100"}, "filterCrs": {to}, "filterType": {"to"}, "timeOffset": {"0"}, "timeWindow": {"120"}}
 		endpoint := strings.TrimRight(s.rail, "/") + "/api/20220120/GetDepBoardWithDetails/" + from + "?" + q.Encode()
-		if e := s.get(r.Context(), endpoint, s.railAuth, &raw); e != nil {
+		headers := http.Header{}
+		// Current Rail Data Marketplace subscriptions use x-apikey. Preserve
+		// Authorization support for direct LDBWS subscriptions, without sending
+		// either rail credential to TfL or returning it to the Android client.
+		if s.railAPIKey != "" {
+			headers.Set("x-apikey", s.railAPIKey)
+		} else {
+			headers.Set("Authorization", s.railAuth)
+		}
+		if e := s.getWithHeaders(r.Context(), endpoint, headers, &raw); e != nil {
 			return Board{}, e
 		}
 		return normaliseRail(raw, to, max, s.now()), nil

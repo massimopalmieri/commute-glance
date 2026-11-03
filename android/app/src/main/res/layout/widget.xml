@@ -56,7 +56,7 @@
             <TextView android:id="@+id/time_two" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="12sp" android:fontFamily="monospace" android:textColor="#EEF0F5" />
         </LinearLayout>
         <TextView android:id="@+id/rail" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="5dp"
-            android:textSize="10sp" android:textColor="#949BAB" android:maxLines="2" android:ellipsize="end" />
+            android:textSize="10sp" android:textColor="#949BAB" android:maxLines="1" android:ellipsize="end" />
     </LinearLayout>
 
     <LinearLayout android:id="@+id/off_board" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="vertical" android:gravity="center_vertical" android:visibility="gone">

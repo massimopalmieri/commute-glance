@@ -41,12 +41,15 @@ The app opens with live configuration, not a demo mode. It needs a running reach
 
 ## Rail setup
 
-Subscribe to National Rail's **LDBWS Public JSON** feed through Rail Data Marketplace. The adapter implements the published 20220120 LDBWS API:
+Subscribe to Rail Delivery Group's **Live Departure Board** product on [Rail Data Marketplace](https://raildata.org.uk/dashboard/dataProduct/P-d81d6eaf-8060-4467-a339-1c833e50cbbe/overview). Use the public JSON board with calling-point details. The Disruptions API is a different product and does not provide these departures.
 
-- `RAIL_BASE_URL`: HTTPS base before `/api/20220120/GetDepBoardWithDetails/{crs}`.
-- `RAIL_AUTHORIZATION`: complete Authorization header specified by that subscription (the published direct API describes Basic authentication).
+- `RAIL_BASE_URL`: HTTPS base before `/api/20220120/GetDepBoardWithDetails/{crs}`. The current subscribed endpoint uses `https://api1.raildata.org.uk/1010-live-departure-board-dep1_2/LDBWS`.
+- `RAIL_API_KEY`: the subscription's consumer/API key, sent to the rail provider as `x-apikey`.
+- `RAIL_AUTHORIZATION`: optional legacy direct-LDBWS Authorization header. Used only when `RAIL_API_KEY` is absent.
 
-Different RDM products/gateways can require different authentication or paths. Check the subscription documentation; this is not an adapter for arbitrary Darwin SOAP, Staff or push feeds. Rail has fixture tests but has not been verified using a live subscription. Until configured, the app clearly says rail is unavailable while buses continue to work.
+Check your subscription's Specification tab for its exact endpoint and authentication. Keep credentials in the backend environment, never in Git, the APK or chat. On the deployed Pi, use the root-only `/etc/commute-glance.env` and restart `commute-glance.service`. The app's existing backend token does not change.
+
+Both directions were verified with live subscribed data on 3 November 2026, including platforms and a delayed service that still qualifies by scheduled journey duration. The adapter is not for arbitrary Darwin SOAP, Staff or push feeds. Without rail configuration buses continue to work.
 
 ## Raspberry Pi deployment
 

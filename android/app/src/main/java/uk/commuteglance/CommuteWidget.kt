@@ -137,10 +137,10 @@ class CommuteWidget:AppWidgetProvider() {
             if(mode=="morning") {
                 val rail=repo.board("out")
                 val railExpired=rail!=null && Duration.between(rail.fetched,now).seconds>600
-                val railNext=rail?.takeUnless {railExpired}?.departures?.firstOrNull {(it.expected?:it.scheduled)?.isAfter(now.minusSeconds(60))!=false}
+                val railNext=rail?.takeUnless {railExpired}?.departures?.firstOrNull {(it.expected?:it.scheduled)?.isAfter(now)!=false}
                 val state=when {
                     railExpired->"Data expired · refresh"
-                    railNext!=null->railNext.widgetLine(now,0)
+                    railNext!=null->railNext.railWidgetLine()
                     repo.error("out").startsWith("Rail not configured")->"Rail not connected"
                     repo.error("out").isNotBlank()->"Rail unavailable"
                     rail==null->"No rail data yet"

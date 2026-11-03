@@ -76,10 +76,19 @@ func TestRailDurationAndCancellation(t *testing.T) {
 	if len(b.Departures) != 2 {
 		t.Fatalf("wrong fast filter: %+v", b)
 	}
-	if b.Departures[0].DurationMinutes != 15 || b.Departures[0].ExpectedAt.Day() != 3 {
+	var fast, cancelled Departure
+	for _, d := range b.Departures {
+		if d.ID == "fast" {
+			fast = d
+		}
+		if d.ID == "cancel" {
+			cancelled = d
+		}
+	}
+	if fast.DurationMinutes != 15 || fast.ExpectedAt == nil || fast.ExpectedAt.Day() != 3 {
 		t.Fatal("midnight failed")
 	}
-	if b.Departures[1].ExpectedAt != nil || b.Departures[1].Status != "Cancelled" {
+	if cancelled.ExpectedAt != nil || cancelled.Status != "Cancelled" {
 		t.Fatal("cancelled has prediction")
 	}
 	raw.PlatformAvailable = false
@@ -105,6 +114,47 @@ func TestRailEndpoint(t *testing.T) {
 		t.Fatal(w.Body.String())
 	}
 }
+func TestRailMarketplaceKeyIsScopedToRail(t *testing.T) {
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/LDBWS/") {
+			if r.URL.Path != "/LDBWS/api/20220120/GetDepBoardWithDetails/ECR" || r.URL.Query().Get("filterCrs") != "LBG" || r.Header.Get("x-apikey") != "rdm-test-key" || r.Header.Get("Authorization") != "" {
+				t.Error("wrong marketplace request or authentication")
+			}
+			w.Write([]byte(`{"trainServices":[]}`))
+		} else {
+			if r.Header.Get("x-apikey") != "" || r.Header.Get("Authorization") != "" {
+				t.Error("rail credential sent to bus provider")
+			}
+			w.Write([]byte(`[]`))
+		}
+	}))
+	defer up.Close()
+	s := testServer()
+	s.rail, s.tfl = up.URL+"/LDBWS", up.URL
+	s.railAPIKey, s.railAuth = "rdm-test-key", "Basic legacy-ignored"
+	for _, path := range []string{"/v1/trains?from=ECR&to=LBG", "/v1/buses?stop=490007669N"} {
+		w := httptest.NewRecorder()
+		s.handler().ServeHTTP(w, httptest.NewRequest("GET", path, nil))
+		if w.Code != 200 || strings.Contains(w.Body.String(), s.railAPIKey) {
+			t.Fatalf("unexpected client response: %d %s", w.Code, w.Body.String())
+		}
+	}
+}
+
+func TestRailMarketplaceRejectsInvalidKeyWithoutExposingIt(t *testing.T) {
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("invalid key: " + r.Header.Get("x-apikey")))
+	}))
+	defer up.Close()
+	s := testServer()
+	s.rail, s.railAPIKey = up.URL, "private-key"
+	w := httptest.NewRecorder()
+	s.handler().ServeHTTP(w, httptest.NewRequest("GET", "/v1/trains?from=ECR&to=LBG", nil))
+	if w.Code != 502 || !strings.Contains(w.Body.String(), "HTTP 401") || strings.Contains(w.Body.String(), s.railAPIKey) {
+		t.Fatalf("unexpected error response: %d %s", w.Code, w.Body.String())
+	}
+}
 func TestUpstreamFailure(t *testing.T) {
 	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(503) }))
 	defer up.Close()
@@ -119,6 +169,15 @@ func TestRailDST(t *testing.T) {
 	got, ok := railTime("07:40", ref)
 	if !ok || got.UTC().Hour() != 6 {
 		t.Fatal("London BST incorrect", got)
+	}
+}
+
+func TestRailSortsByExpectedTimeAndRetainsDelayedFastTrain(t *testing.T) {
+	var raw railBoard
+	json.Unmarshal([]byte(`{"generatedAt":"2026-11-02T07:20:00Z","trainServices":[{"serviceID":"delayed","std":"07:30","etd":"07:45","subsequentCallingPoints":[{"callingPoint":[{"crs":"LBG","st":"07:45"}]}]},{"serviceID":"on-time","std":"07:35","etd":"On time","subsequentCallingPoints":[{"callingPoint":[{"crs":"LBG","st":"07:50"}]}]}]}`), &raw)
+	b := normaliseRail(raw, "LBG", 20, time.Now())
+	if len(b.Departures) != 2 || b.Departures[0].ID != "on-time" || b.Departures[1].ID != "delayed" || b.Departures[1].DurationMinutes != 15 {
+		t.Fatalf("predicted ordering or scheduled-duration filter failed: %+v", b.Departures)
 	}
 }
 
